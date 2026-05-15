@@ -1,0 +1,172 @@
+/**
+ * Window Component Styles
+ */
+
+.window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  background-color: #16213e;
+  border: 1px solid #1a3a52;
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+.window:not(.minimized) {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.window.minimized {
+  display: none;
+}
+
+/* Window Title Bar */
+.window-title-bar {
+  background: linear-gradient(to right, #0f3460, #1a4d6d);
+  border-bottom: 1px solid #1a3a52;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: move;
+  user-select: none;
+  flex-shrink: 0;
+  height: 32px;
+}
+
+.window-title-bar:active {
+  background: linear-gradient(to right, #0a2847, #15405f);
+}
+
+.window-title {
+  color: #e0e0e0;
+  font-size: 13px;
+  font-weight: 600;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Window Controls */
+.window-controls {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.window-btn {
+  background-color: transparent;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.window-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #e0e0e0;
+}
+
+.window-btn:active {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.close-btn:hover {
+  background-color: #d32f2f;
+  color: #fff;
+}
+
+.close-btn:active {
+  background-color: #b71c1c;
+}
+
+.minimize-btn:hover {
+  background-color: rgba(58, 134, 255, 0.3);
+  color: #3a86ff;
+}
+
+/* Window Content */
+.window-content {
+  flex: 1;
+  overflow: auto;
+  background-color: #0f2d47;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.window-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.window-content::-webkit-scrollbar-track {
+  background: #16213e;
+  border-radius: 4px;
+}
+
+.window-content::-webkit-scrollbar-thumb {
+  background: #1a4d6d;
+  border-radius: 4px;
+}
+
+.window-content::-webkit-scrollbar-thumb:hover {
+  background: #2a6d9f;
+}
+
+/* Resize Handle */
+.window-resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    transparent 50%,
+    rgba(58, 134, 255, 0.4) 50%,
+    rgba(58, 134, 255, 0.4) 100%
+  );
+  border-radius: 0 0 6px 0;
+}
+
+.window-resize-handle:hover {
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    transparent 50%,
+    rgba(58, 134, 255, 0.7) 50%,
+    rgba(58, 134, 255, 0.7) 100%
+  );
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .window {
+    width: 100% !important;
+    height: 100% !important;
+    left: 0 !important;
+    top: 0 !important;
+    border-radius: 0;
+  }
+
+  .window-resize-handle {
+    display: none;
+  }
+
+  .desktop-menu {
+    flex-wrap: wrap;
+  }
+}
