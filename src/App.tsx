@@ -3,7 +3,6 @@ import './App.css';
 import Input from './components/Input';
 import { Outputs } from './components/Outputs';
 import { TerminalContext } from './context/terminal.context';
-import Terminal from './components/Terminal';
 import Desktop from './components/Desktop';
 import ProjectCards from './components/ProjectCards';
 

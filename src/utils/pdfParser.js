@@ -138,7 +138,7 @@ export function extractExperience(text) {
   const expText = experienceSection[1];
 
   // Look for job entries - simple heuristic: uppercase company names followed by titles
-  const jobRegex = /([A-Z][A-Za-z\s&,]*?)\s*\n\s*([A-Z][A-Za-z\s,]*?)\s*\n\s*([\d\s\-]*(?:20\d{2}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[^\n]*)/gmi;
+  const jobRegex = /([A-Z][A-Za-z\s&,]*?)\s*\n\s*([A-Z][A-Za-z\s,]*?)\s*\n\s*([\d\s-]*(?:20\d{2}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[^\n]*)/gmi;
 
   let match;
   while ((match = jobRegex.exec(expText)) !== null) {
@@ -159,8 +159,6 @@ export function extractExperience(text) {
  * @returns {Array} - Array of skill strings
  */
 export function extractSkills(text) {
-  const skills = [];
-
   // Look for skills section
   const skillsSection = text.match(
     /(?:Skills|Technical Skills|Core Competencies)([\s\S]*?)(?:Experience|Education|$)/i

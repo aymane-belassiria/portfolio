@@ -3,7 +3,7 @@ import { initializeFilesystem, navigateFS, listDirectory, getFileContent } from 
 import '../styles/terminal.css';
 
 const Terminal = ({ onFileOpen }) => {
-  const [filesystem, setFilesystem] = useState(() => initializeFilesystem());
+  const [filesystem] = useState(() => initializeFilesystem());
   const [currentPath, setCurrentPath] = useState('/home/aymane');
   const [output, setOutput] = useState([]);
   const [input, setInput] = useState('');
