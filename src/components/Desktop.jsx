@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import Window from './Window';
 import Terminal from './Terminal';
+import PDFViewer from './PDFViewer';
 import {
   createWindow,
   updateWindowPosition,
@@ -192,7 +193,7 @@ const Desktop = ({ onFileOpen }) => {
               <div className="window-placeholder">Files Browser</div>
             )}
             {window.type === 'resume' && (
-              <div className="window-placeholder">Resume Viewer</div>
+              <PDFViewer />
             )}
           </Window>
         ))}

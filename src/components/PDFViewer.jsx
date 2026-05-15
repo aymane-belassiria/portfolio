@@ -73,10 +73,10 @@ export default function PDFViewer() {
         {view === 'experience' && (
           <div className="pdf-section">
             <h2>Experience</h2>
-            {resumeData.experience.map((exp, idx) => (
+            {(resumeData.experience || []).map((exp, idx) => (
               <div key={idx} className="experience-item">
                 <h3>{exp.title}</h3>
-                <p className="company">{exp.company} · {exp.date}</p>
+                <p className="company">{exp.company} · {exp.duration}</p>
                 {exp.description && <p>{exp.description}</p>}
               </div>
             ))}
@@ -87,7 +87,7 @@ export default function PDFViewer() {
           <div className="pdf-section">
             <h2>Skills</h2>
             <div className="skills-list">
-              {resumeData.skills.map((skill, idx) => (
+              {(resumeData.skills || []).map((skill, idx) => (
                 <span key={idx} className="skill-tag">{skill}</span>
               ))}
             </div>
@@ -97,11 +97,11 @@ export default function PDFViewer() {
         {view === 'contact' && (
           <div className="pdf-section">
             <h2>Contact</h2>
-            <p><strong>Name:</strong> {resumeData.contact.name}</p>
-            {resumeData.contact.email && (
+            <p><strong>Name:</strong> {resumeData.contact?.name}</p>
+            {resumeData.contact?.email && (
               <p><strong>Email:</strong> <a href={`mailto:${resumeData.contact.email}`}>{resumeData.contact.email}</a></p>
             )}
-            {resumeData.contact.phone && (
+            {resumeData.contact?.phone && (
               <p><strong>Phone:</strong> {resumeData.contact.phone}</p>
             )}
           </div>
