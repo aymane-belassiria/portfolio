@@ -6,13 +6,41 @@ export function initializeFilesystem() {
       home: {
         type: 'dir',
         children: {
-          documents: {
+          aymane: {
             type: 'dir',
-            children: {}
-          },
-          projects: {
-            type: 'dir',
-            children: {}
+            children: {
+              documents: {
+                type: 'dir',
+                children: {
+                  'aymane belassiria.pdf': {
+                    type: 'file',
+                    content: '%PDF-1.4\n... PDF content ...'
+                  }
+                }
+              },
+              projects: {
+                type: 'dir',
+                children: {
+                  'projects.txt': {
+                    type: 'file',
+                    content: 'Project 1\nProject 2\nProject 3'
+                  }
+                }
+              },
+              'experience.txt': {
+                type: 'file',
+                content: 'Senior Developer\n5+ years experience'
+              }
+            }
+          }
+        }
+      },
+      bin: {
+        type: 'dir',
+        children: {
+          gh: {
+            type: 'file',
+            content: '#!/bin/bash\n# GitHub CLI executable'
           }
         }
       },
@@ -29,25 +57,35 @@ export function initializeFilesystem() {
 }
 
 export function navigateFS(fs, currentPath, targetDir) {
-  const pathSegments = currentPath === '/' ? [] : currentPath.split('/').filter(Boolean);
+  let pathSegments = currentPath === '/' ? [] : currentPath.split('/').filter(Boolean);
 
-  // Navigate to current path
+  // Handle parent directory (..)
+  if (targetDir === '..') {
+    if (pathSegments.length > 0) {
+      pathSegments.pop();
+    }
+    return pathSegments.length === 0 ? '/' : '/' + pathSegments.join('/');
+  }
+
+  // Handle absolute paths (starting with /)
+  if (targetDir.startsWith('/')) {
+    pathSegments = targetDir === '/' ? [] : targetDir.split('/').filter(Boolean);
+  } else {
+    // Handle relative paths
+    pathSegments.push(targetDir);
+  }
+
+  // Validate the path exists
   let current = fs.root;
   for (const segment of pathSegments) {
     if (current[segment] && current[segment].type === 'dir') {
       current = current[segment].children;
     } else {
-      return currentPath; // Invalid current path
+      return currentPath; // Invalid target path, stay in current path
     }
   }
 
-  // Check if target directory exists
-  if (current[targetDir] && current[targetDir].type === 'dir') {
-    const newPathSegments = [...pathSegments, targetDir];
-    return newPathSegments.length === 0 ? '/' : '/' + newPathSegments.join('/');
-  }
-
-  return currentPath; // Target doesn't exist, stay in current path
+  return pathSegments.length === 0 ? '/' : '/' + pathSegments.join('/');
 }
 
 export function listDirectory(fs, path) {
@@ -63,10 +101,11 @@ export function listDirectory(fs, path) {
     }
   }
 
-  // Return directory contents as array of objects
+  // Return directory contents as array of objects with size property
   return Object.entries(current).map(([name, node]) => ({
     name,
-    type: node.type
+    type: node.type,
+    size: node.type === 'dir' ? '-' : (node.content || '').length
   }));
 }
 
