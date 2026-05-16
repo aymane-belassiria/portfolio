@@ -275,6 +275,7 @@ const Desktop = ({ onModeChange }) => {
             onResizeStart={handleResizeStart}
             onMinimize={handleMinimize}
             onClose={handleClose}
+            onFocus={focusWindow}
           >
             {win.type === 'terminal' && (
               <Terminal
@@ -320,7 +321,7 @@ const Desktop = ({ onModeChange }) => {
 };
 
 const DesktopIcon = ({ icon }) => {
-  const lastTap = useRef(0);
+  const clickTimer = useRef(null);
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   const handleClick = () => {
@@ -328,12 +329,16 @@ const DesktopIcon = ({ icon }) => {
       icon.onOpen();
       return;
     }
-    const now = Date.now();
-    if (now - lastTap.current < 400) {
+    // On desktop, first click arms the timer; second click within 350ms opens.
+    if (clickTimer.current) {
+      clearTimeout(clickTimer.current);
+      clickTimer.current = null;
       icon.onOpen();
-      lastTap.current = 0;
     } else {
-      lastTap.current = now;
+      clickTimer.current = setTimeout(() => {
+        clickTimer.current = null;
+        // single click — no action for icons
+      }, 350);
     }
   };
 
@@ -341,8 +346,7 @@ const DesktopIcon = ({ icon }) => {
     <button
       className="desktop-icon"
       onClick={handleClick}
-      onDoubleClick={icon.onOpen}
-      title={`Open ${icon.label}`}
+      title={`Double-click to open ${icon.label}`}
     >
       <span className="desktop-icon-emoji">{icon.emoji}</span>
       <span className="desktop-icon-label">{icon.label}</span>

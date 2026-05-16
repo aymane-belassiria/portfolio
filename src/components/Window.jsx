@@ -19,6 +19,7 @@ const Window = ({
   onResizeStart,
   onMinimize,
   onClose,
+  onFocus,
   children,
 }) => {
   return (
@@ -31,7 +32,7 @@ const Window = ({
         height: `${height}px`,
         zIndex,
       }}
-      onClick={() => onDragStart && onDragStart(id, 0, 0)}
+      onMouseDown={() => onFocus && onFocus(id)}
     >
       {/* Title Bar */}
       <div
