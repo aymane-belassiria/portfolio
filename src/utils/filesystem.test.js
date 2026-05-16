@@ -1,106 +1,126 @@
-// src/utils/filesystem.test.js
-import { initializeFilesystem, navigateFS, listDirectory, getFileContent } from './filesystem';
+import {
+  initializeFilesystem,
+  navigateFS,
+  listDirectory,
+  getFileContent,
+  getNode,
+  resolvePath,
+  HOME_PATH,
+  prettyPath,
+} from './filesystem';
 
-test('navigateFS: cd to existing directory returns new path', () => {
+test('home directory exists at /home/aymane/portfolio', () => {
   const fs = initializeFilesystem();
-  const newPath = navigateFS(fs, '/', 'home');
-  expect(newPath).toBe('/home');
+  const node = getNode(fs, HOME_PATH);
+  expect(node).not.toBeNull();
+  expect(node.type).toBe('dir');
 });
 
-test('navigateFS: cd to nonexistent directory returns current path', () => {
+test('about.md, contact.md, skills.md, resume.pdf exist in home', () => {
   const fs = initializeFilesystem();
-  const samePath = navigateFS(fs, '/', 'nonexistent');
-  expect(samePath).toBe('/');
+  const items = listDirectory(fs, HOME_PATH);
+  const names = items.map((i) => i.name);
+  expect(names).toEqual(
+    expect.arrayContaining(['about.md', 'contact.md', 'skills.md', 'resume.pdf'])
+  );
 });
 
-test('navigateFS: parent directory (..) navigation', () => {
+test('experience directory contains all seven companies', () => {
   const fs = initializeFilesystem();
-  const path1 = navigateFS(fs, '/', 'home');
-  expect(path1).toBe('/home');
-  const path2 = navigateFS(fs, path1, '..');
-  expect(path2).toBe('/');
+  const items = listDirectory(fs, `${HOME_PATH}/experience`);
+  const names = items.map((i) => i.name);
+  for (const slug of [
+    'polymorpho',
+    'youcode',
+    'quipnex',
+    'ocp',
+    'sahwa',
+    'mchain',
+    'kipinia',
+  ]) {
+    expect(names).toContain(`${slug}.md`);
+  }
 });
 
-test('navigateFS: parent directory (..) from root stays at root', () => {
+test('projects directory contains curated project files', () => {
   const fs = initializeFilesystem();
-  const path = navigateFS(fs, '/', '..');
-  expect(path).toBe('/');
+  const items = listDirectory(fs, `${HOME_PATH}/projects`);
+  const names = items.map((i) => i.name);
+  for (const slug of ['booky', 'tighalin', 'spring-resource', 'docker-workshop']) {
+    expect(names).toContain(`${slug}.md`);
+  }
 });
 
-test('navigateFS: relative path from nested directory', () => {
+test('navigateFS: relative cd descends into a directory', () => {
   const fs = initializeFilesystem();
-  const path1 = navigateFS(fs, '/', 'home');
-  const path2 = navigateFS(fs, path1, 'aymane');
-  expect(path2).toBe('/home/aymane');
-  const path3 = navigateFS(fs, path2, 'documents');
-  expect(path3).toBe('/home/aymane/documents');
+  const next = navigateFS(fs, HOME_PATH, 'experience');
+  expect(next).toBe(`${HOME_PATH}/experience`);
 });
 
-test('navigateFS: absolute path navigation', () => {
+test('navigateFS: absolute cd jumps anywhere', () => {
   const fs = initializeFilesystem();
-  const path = navigateFS(fs, '/home/aymane', '/bin');
-  expect(path).toBe('/bin');
+  const next = navigateFS(fs, HOME_PATH, '/home/aymane/portfolio/projects');
+  expect(next).toBe(`${HOME_PATH}/projects`);
 });
 
-test('listDirectory: ls / returns root contents', () => {
+test('navigateFS: nonexistent target leaves cwd unchanged', () => {
   const fs = initializeFilesystem();
-  const items = listDirectory(fs, '/');
-  expect(items).toContainEqual(expect.objectContaining({ name: 'home', type: 'dir' }));
-  expect(items).toContainEqual(expect.objectContaining({ name: 'bin', type: 'dir' }));
+  const next = navigateFS(fs, HOME_PATH, 'no-such-thing');
+  expect(next).toBe(HOME_PATH);
 });
 
-test('listDirectory: ls nonexistent path returns empty', () => {
+test('navigateFS: parent (..) goes up', () => {
   const fs = initializeFilesystem();
-  const items = listDirectory(fs, '/fake');
-  expect(items).toEqual([]);
+  const next = navigateFS(fs, `${HOME_PATH}/projects`, '..');
+  expect(next).toBe(HOME_PATH);
 });
 
-test('listDirectory: items have size property', () => {
+test('navigateFS respects rootPath scope: cannot escape', () => {
   const fs = initializeFilesystem();
-  const items = listDirectory(fs, '/');
-  items.forEach(item => {
-    expect(item).toHaveProperty('size');
-  });
+  const root = `${HOME_PATH}/projects`;
+  const tryEscape = navigateFS(fs, root, '..', root);
+  expect(tryEscape).toBe(root);
 });
 
-test('listDirectory: directories have size "-" and files have numeric size', () => {
+test('getFileContent: returns markdown for .md file', () => {
   const fs = initializeFilesystem();
-  const items = listDirectory(fs, '/home/aymane');
-  const dirItem = items.find(i => i.name === 'documents');
-  const fileItem = items.find(i => i.name === 'experience.txt');
-  expect(dirItem.size).toBe('-');
-  expect(typeof fileItem.size).toBe('number');
-  expect(fileItem.size).toBeGreaterThan(0);
-});
-
-test('getFileContent: returns file content for valid file', () => {
-  const fs = initializeFilesystem();
-  const content = getFileContent(fs, '/home/aymane/experience.txt');
-  expect(content).toBe('Senior Developer\n5+ years experience');
+  const content = getFileContent(fs, `${HOME_PATH}/about.md`);
+  expect(typeof content).toBe('string');
+  expect(content).toMatch(/About/);
 });
 
 test('getFileContent: returns null for nonexistent file', () => {
   const fs = initializeFilesystem();
-  const content = getFileContent(fs, '/home/aymane/nonexistent.txt');
-  expect(content).toBeNull();
+  expect(getFileContent(fs, `${HOME_PATH}/nope.md`)).toBeNull();
 });
 
-test('getFileContent: returns null for directory path', () => {
+test('getFileContent: returns pdf sentinel for resume.pdf', () => {
   const fs = initializeFilesystem();
-  const content = getFileContent(fs, '/home/aymane');
-  expect(content).toBeNull();
+  const content = getFileContent(fs, `${HOME_PATH}/resume.pdf`);
+  expect(content).toEqual({ pdf: true, assetPath: '/aymane belassiria.pdf' });
 });
 
-test('getFileContent: returns file content from nested directory', () => {
+test('resolvePath: handles tilde', () => {
   const fs = initializeFilesystem();
-  const content = getFileContent(fs, '/home/aymane/projects/projects.txt');
-  expect(content).toBe('Project 1\nProject 2\nProject 3');
+  expect(resolvePath(fs, '/', '~')).toBe(HOME_PATH);
+  expect(resolvePath(fs, '/', '~/projects')).toBe(`${HOME_PATH}/projects`);
 });
 
-test('filesystem structure: required files exist', () => {
+test('prettyPath: collapses home to ~', () => {
+  expect(prettyPath(HOME_PATH)).toBe('~/portfolio');
+  expect(prettyPath(`${HOME_PATH}/experience`)).toBe('~/portfolio/experience');
+  expect(prettyPath('/etc')).toBe('/etc');
+});
+
+test('experience file content references the company name', () => {
   const fs = initializeFilesystem();
-  expect(getFileContent(fs, '/home/aymane/experience.txt')).not.toBeNull();
-  expect(getFileContent(fs, '/home/aymane/projects/projects.txt')).not.toBeNull();
-  expect(getFileContent(fs, '/home/aymane/documents/aymane belassiria.pdf')).not.toBeNull();
-  expect(getFileContent(fs, '/bin/gh')).not.toBeNull();
+  const content = getFileContent(fs, `${HOME_PATH}/experience/polymorpho.md`);
+  expect(content).toMatch(/Polymorpho/);
+});
+
+test('project file content includes status and stack', () => {
+  const fs = initializeFilesystem();
+  const content = getFileContent(fs, `${HOME_PATH}/projects/tighalin.md`);
+  expect(content).toMatch(/tighalin/i);
+  expect(content).toMatch(/Stack/);
 });

@@ -1,12 +1,11 @@
-/**
- * Desktop Component
- * Main desktop environment with window management
- */
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Window from './Window';
 import Terminal from './Terminal';
 import PDFViewer from './PDFViewer';
+import FileExplorer from './FileExplorer';
+import FileViewer from './FileViewer';
+import ProjectCards from './ProjectCards';
+import { initializeFilesystem, getFileContent, getNode, HOME_PATH } from '../utils/filesystem';
 import {
   createWindow,
   updateWindowPosition,
@@ -16,206 +15,338 @@ import {
 } from '../utils/windowManager';
 import '../styles/desktop.css';
 
-const Desktop = ({ onFileOpen }) => {
-  const [windows, setWindows] = useState([
-    createWindow('terminal-1', 'Terminal', 'terminal', null),
+const buildWindow = (overrides) => ({ ...createWindow(overrides.id, overrides.title, overrides.type, null), ...overrides });
+
+const Desktop = ({ onModeChange }) => {
+  const filesystemRef = useRef(initializeFilesystem());
+  const [windows, setWindows] = useState(() => [
+    buildWindow({
+      id: 'resume-initial',
+      title: 'resume.pdf',
+      type: 'resume',
+      x: 360,
+      y: 40,
+      width: 720,
+      height: 560,
+      zIndex: 2,
+    }),
   ]);
   const [draggingWindow, setDraggingWindow] = useState(null);
   const [resizingWindow, setResizingWindow] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
-  // Handle window drag
   useEffect(() => {
     if (!draggingWindow) return;
-
     const handleMouseMove = (e) => {
-      setWindows((prevWindows) =>
-        prevWindows.map((w) => {
-          if (w.id === draggingWindow) {
-            const newX = e.clientX - dragOffset.x;
-            const newY = e.clientY - dragOffset.y;
-            return updateWindowPosition(w, newX, newY);
-          }
-          return w;
-        })
+      setWindows((prev) =>
+        prev.map((w) =>
+          w.id === draggingWindow
+            ? updateWindowPosition(w, e.clientX - dragOffset.x, e.clientY - dragOffset.y)
+            : w
+        )
       );
     };
-
-    const handleMouseUp = () => {
-      setDraggingWindow(null);
-    };
-
+    const handleMouseUp = () => setDraggingWindow(null);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [draggingWindow, dragOffset]);
 
-  // Handle window resize
   useEffect(() => {
     if (!resizingWindow) return;
-
     const handleMouseMove = (e) => {
-      setWindows((prevWindows) =>
-        prevWindows.map((w) => {
-          if (w.id === resizingWindow) {
-            const newWidth = Math.max(300, e.clientX - w.x);
-            const newHeight = Math.max(200, e.clientY - w.y);
-            return updateWindowSize(w, newWidth, newHeight);
-          }
-          return w;
-        })
+      setWindows((prev) =>
+        prev.map((w) =>
+          w.id === resizingWindow
+            ? updateWindowSize(
+                w,
+                Math.max(300, e.clientX - w.x),
+                Math.max(200, e.clientY - w.y)
+              )
+            : w
+        )
       );
     };
-
-    const handleMouseUp = () => {
-      setResizingWindow(null);
-    };
-
+    const handleMouseUp = () => setResizingWindow(null);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [resizingWindow]);
 
-  // Handle drag start
   const handleDragStart = (windowId, clientX, clientY) => {
-    const window = windows.find((w) => w.id === windowId);
-    if (!window) return;
-
+    const win = windows.find((w) => w.id === windowId);
+    if (!win) return;
     setDraggingWindow(windowId);
-    setDragOffset({
-      x: clientX - window.x,
-      y: clientY - window.y,
+    setDragOffset({ x: clientX - win.x, y: clientY - win.y });
+    const maxZ = Math.max(...windows.map((w) => w.zIndex));
+    setWindows((prev) =>
+      prev.map((w) => (w.id === windowId ? bringToFront(w, maxZ) : w))
+    );
+  };
+
+  const handleResizeStart = (windowId) => {
+    setResizingWindow(windowId);
+    const maxZ = Math.max(...windows.map((w) => w.zIndex));
+    setWindows((prev) =>
+      prev.map((w) => (w.id === windowId ? bringToFront(w, maxZ) : w))
+    );
+  };
+
+  const handleMinimize = (windowId) => {
+    setWindows((prev) =>
+      prev.map((w) => (w.id === windowId ? toggleMinimize(w) : w))
+    );
+  };
+
+  const handleClose = (windowId) => {
+    setWindows((prev) => prev.filter((w) => w.id !== windowId));
+  };
+
+  const focusWindow = (windowId) => {
+    const maxZ = Math.max(...windows.map((w) => w.zIndex), 0);
+    setWindows((prev) =>
+      prev.map((w) =>
+        w.id === windowId
+          ? { ...bringToFront(w, maxZ), minimized: false }
+          : w
+      )
+    );
+  };
+
+  const openWindow = (overrides) => {
+    const id = overrides.id || `win-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    setWindows((prev) => {
+      const existing = prev.find((w) => w.id === id);
+      if (existing) {
+        const maxZ = Math.max(...prev.map((w) => w.zIndex), 0);
+        return prev.map((w) =>
+          w.id === id ? { ...bringToFront(w, maxZ), minimized: false } : w
+        );
+      }
+      const offset = (prev.length % 6) * 24;
+      const maxZ = Math.max(...prev.map((w) => w.zIndex), 0);
+      return [
+        ...prev,
+        buildWindow({
+          id,
+          x: 80 + offset,
+          y: 60 + offset,
+          width: 600,
+          height: 420,
+          zIndex: maxZ + 1,
+          ...overrides,
+        }),
+      ];
+    });
+  };
+
+  const openTerminal = () =>
+    openWindow({ title: 'Terminal', type: 'terminal' });
+
+  const openResume = () =>
+    openWindow({
+      id: 'resume',
+      title: 'resume.pdf',
+      type: 'resume',
+      width: 720,
+      height: 560,
     });
 
-    // Bring window to front
-    const maxZ = Math.max(...windows.map((w) => w.zIndex));
-    setWindows((prevWindows) =>
-      prevWindows.map((w) =>
-        w.id === windowId ? bringToFront(w, maxZ) : w
-      )
-    );
+  const openExplorer = (rootPath = HOME_PATH) =>
+    openWindow({
+      title: `Files — ${rootPath.replace(HOME_PATH, '~/portfolio')}`,
+      type: 'explorer',
+      rootPath,
+      width: 480,
+      height: 380,
+    });
+
+  const openFile = (filePath, contentArg) => {
+    const node = getNode(filesystemRef.current, filePath);
+    if (!node) return;
+    if (node.kind === 'pdf') {
+      openResume();
+      return;
+    }
+    const content = contentArg ?? getFileContent(filesystemRef.current, filePath);
+    if (typeof content !== 'string') return;
+    const fileName = filePath.split('/').pop();
+    openWindow({
+      title: fileName,
+      type: 'file',
+      filePath,
+      fileContent: content,
+      fileKind: node.kind,
+      width: 640,
+      height: 480,
+    });
   };
 
-  // Handle resize start
-  const handleResizeStart = (windowId, clientX, clientY) => {
-    setResizingWindow(windowId);
+  const openProjectsGrid = () =>
+    openWindow({
+      id: 'projects-grid',
+      title: 'Project Gallery',
+      type: 'grid',
+      width: 820,
+      height: 560,
+    });
 
-    // Bring window to front
-    const maxZ = Math.max(...windows.map((w) => w.zIndex));
-    setWindows((prevWindows) =>
-      prevWindows.map((w) =>
-        w.id === windowId ? bringToFront(w, maxZ) : w
-      )
-    );
-  };
+  const handleModeBack = () => onModeChange && onModeChange('terminal');
 
-  // Handle minimize
-  const handleMinimize = (windowId) => {
-    setWindows((prevWindows) =>
-      prevWindows.map((w) =>
-        w.id === windowId ? toggleMinimize(w) : w
-      )
-    );
-  };
-
-  // Handle close
-  const handleClose = (windowId) => {
-    setWindows((prevWindows) => prevWindows.filter((w) => w.id !== windowId));
-  };
-
-  // Handle opening new windows
-  const handleNewTerminal = () => {
-    const newId = `terminal-${Date.now()}`;
-    const newWindow = createWindow(newId, 'Terminal', 'terminal', null);
-    setWindows([...windows, newWindow]);
-  };
-
-  const handleNewFiles = () => {
-    const newId = `files-${Date.now()}`;
-    const newWindow = createWindow(newId, 'Files', 'files', null);
-    setWindows([...windows, newWindow]);
-  };
-
-  const handleNewResume = () => {
-    const newId = `resume-${Date.now()}`;
-    const newWindow = createWindow(newId, 'Resume', 'resume', null);
-    setWindows([...windows, newWindow]);
-  };
+  const icons = [
+    { id: 'icon-resume', label: 'Resume', emoji: '📄', onOpen: openResume },
+    {
+      id: 'icon-experience',
+      label: 'Experience',
+      emoji: '📁',
+      onOpen: () => openExplorer(`${HOME_PATH}/experience`),
+    },
+    {
+      id: 'icon-projects',
+      label: 'Projects',
+      emoji: '📁',
+      onOpen: () => openExplorer(`${HOME_PATH}/projects`),
+    },
+    {
+      id: 'icon-about',
+      label: 'About',
+      emoji: '📄',
+      onOpen: () => openFile(`${HOME_PATH}/about.md`),
+    },
+    {
+      id: 'icon-skills',
+      label: 'Skills',
+      emoji: '📄',
+      onOpen: () => openFile(`${HOME_PATH}/skills.md`),
+    },
+    {
+      id: 'icon-contact',
+      label: 'Contact',
+      emoji: '📄',
+      onOpen: () => openFile(`${HOME_PATH}/contact.md`),
+    },
+    { id: 'icon-terminal', label: 'Terminal', emoji: '💻', onOpen: openTerminal },
+  ];
 
   return (
     <div className="desktop">
-      {/* Header/Menu Bar */}
       <div className="desktop-header">
         <div className="desktop-menu">
-          <button className="menu-btn" onClick={handleNewTerminal}>
-            New Terminal
-          </button>
-          <button className="menu-btn" onClick={handleNewFiles}>
+          <button className="menu-btn" onClick={() => openExplorer(HOME_PATH)}>
             Files
           </button>
-          <button className="menu-btn" onClick={handleNewResume}>
+          <button className="menu-btn" onClick={openTerminal}>
+            New Terminal
+          </button>
+          <button className="menu-btn" onClick={openResume}>
             Resume
+          </button>
+          <button className="menu-btn menu-btn-accent" onClick={handleModeBack}>
+            Back to Terminal
           </button>
         </div>
       </div>
 
-      {/* Desktop Area */}
       <div className="desktop-area">
-        {/* Render all windows */}
-        {windows.map((window) => (
+        <div className="desktop-icons">
+          {icons.map((icon) => (
+            <DesktopIcon key={icon.id} icon={icon} />
+          ))}
+        </div>
+
+        {windows.map((win) => (
           <Window
-            key={window.id}
-            id={window.id}
-            title={window.title}
-            x={window.x}
-            y={window.y}
-            width={window.width}
-            height={window.height}
-            zIndex={window.zIndex}
-            minimized={window.minimized}
+            key={win.id}
+            id={win.id}
+            title={win.title}
+            x={win.x}
+            y={win.y}
+            width={win.width}
+            height={win.height}
+            zIndex={win.zIndex}
+            minimized={win.minimized}
             onDragStart={handleDragStart}
             onResizeStart={handleResizeStart}
             onMinimize={handleMinimize}
             onClose={handleClose}
           >
-            {window.type === 'terminal' && (
-              <Terminal onFileOpen={onFileOpen} />
+            {win.type === 'terminal' && (
+              <Terminal
+                variant="desktop"
+                onFileOpen={openFile}
+                onResumeOpen={openResume}
+                onProjectsGrid={openProjectsGrid}
+                onModeChange={onModeChange}
+              />
             )}
-            {window.type === 'files' && (
-              <div className="window-placeholder">Files Browser</div>
+            {win.type === 'resume' && <PDFViewer />}
+            {win.type === 'file' && (
+              <FileViewer
+                filePath={win.filePath}
+                content={win.fileContent}
+                kind={win.fileKind}
+              />
             )}
-            {window.type === 'resume' && (
-              <PDFViewer />
+            {win.type === 'explorer' && (
+              <FileExplorer
+                rootPath={win.rootPath || HOME_PATH}
+                onFileOpen={openFile}
+              />
             )}
+            {win.type === 'grid' && <ProjectCards />}
           </Window>
         ))}
       </div>
 
-      {/* Taskbar */}
       <div className="taskbar">
-        {windows.map((window) => (
+        {windows.map((win) => (
           <button
-            key={window.id}
-            className={`taskbar-item ${window.minimized ? 'minimized' : ''}`}
-            onClick={() => {
-              if (window.minimized) {
-                handleMinimize(window.id);
-              }
-            }}
+            key={win.id}
+            className={`taskbar-item ${win.minimized ? 'minimized' : ''}`}
+            onClick={() => focusWindow(win.id)}
           >
-            {window.title}
+            {win.title}
           </button>
         ))}
       </div>
     </div>
+  );
+};
+
+const DesktopIcon = ({ icon }) => {
+  const lastTap = useRef(0);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
+  const handleClick = () => {
+    if (isMobile) {
+      icon.onOpen();
+      return;
+    }
+    const now = Date.now();
+    if (now - lastTap.current < 400) {
+      icon.onOpen();
+      lastTap.current = 0;
+    } else {
+      lastTap.current = now;
+    }
+  };
+
+  return (
+    <button
+      className="desktop-icon"
+      onClick={handleClick}
+      onDoubleClick={icon.onOpen}
+      title={`Open ${icon.label}`}
+    >
+      <span className="desktop-icon-emoji">{icon.emoji}</span>
+      <span className="desktop-icon-label">{icon.label}</span>
+    </button>
   );
 };
 

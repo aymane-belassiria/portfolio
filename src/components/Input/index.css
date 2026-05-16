@@ -1,9 +1,0 @@
-#input::before{
-    content: "aymane@aymane: ";
-    color: green;
-}
-
-input{
-    text-indent: 265px;
-    resize: none;
-}

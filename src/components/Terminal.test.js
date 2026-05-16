@@ -1,27 +1,89 @@
+import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import Terminal from './Terminal';
 
-test('Terminal renders with home directory prompt', () => {
-  render(<Terminal />);
-  expect(screen.getByText(/\$\s*$/)).toBeInTheDocument();
+function typeAndEnter(container, text) {
+  const input = container.querySelector('input[type="text"]');
+  fireEvent.change(input, { target: { value: text } });
+  fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+}
+
+test('Terminal renders with portfolio prompt', () => {
+  const { container } = render(<Terminal />);
+  expect(container.textContent).toMatch(/aymane@aymane/);
+  expect(container.textContent).toMatch(/~\/portfolio/);
 });
 
-test('Terminal executes ls command and displays contents', async () => {
+test('help command prints command list', () => {
   const { container } = render(<Terminal />);
-  const input = container.querySelector('input[type="text"]');
-
-  fireEvent.change(input, { target: { value: 'ls' } });
-  fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
-
-  expect(screen.getByText(/home/i)).toBeInTheDocument();
+  typeAndEnter(container, 'help');
+  expect(container.textContent).toMatch(/available commands/);
+  expect(container.textContent).toMatch(/about/);
+  expect(container.textContent).toMatch(/desktop/);
 });
 
-test('Terminal executes cd command and updates path', async () => {
+test('ls lists portfolio root contents', () => {
   const { container } = render(<Terminal />);
-  const input = container.querySelector('input[type="text"]');
+  typeAndEnter(container, 'ls');
+  expect(container.textContent).toMatch(/about\.md/);
+  expect(container.textContent).toMatch(/projects\//);
+  expect(container.textContent).toMatch(/experience\//);
+});
 
-  fireEvent.change(input, { target: { value: 'cd home' } });
-  fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+test('about alias prints about.md content', () => {
+  const { container } = render(<Terminal />);
+  typeAndEnter(container, 'about');
+  expect(container.textContent).toMatch(/About/);
+});
 
-  expect(screen.getByText(/\/home\s*\$\s*$/)).toBeInTheDocument();
+test('cd projects updates prompt path', () => {
+  const { container } = render(<Terminal />);
+  typeAndEnter(container, 'cd projects');
+  expect(container.textContent).toMatch(/~\/portfolio\/projects/);
+});
+
+test('unknown command prints not-found error', () => {
+  const { container } = render(<Terminal />);
+  typeAndEnter(container, 'foobar');
+  expect(container.textContent).toMatch(/foobar: command not found/);
+});
+
+test('desktop command invokes onModeChange("desktop")', () => {
+  const onModeChange = jest.fn();
+  const { container } = render(<Terminal onModeChange={onModeChange} />);
+  typeAndEnter(container, 'desktop');
+  expect(onModeChange).toHaveBeenCalledWith('desktop');
+});
+
+test('terminal command invokes onModeChange("terminal")', () => {
+  const onModeChange = jest.fn();
+  const { container } = render(<Terminal onModeChange={onModeChange} />);
+  typeAndEnter(container, 'terminal');
+  expect(onModeChange).toHaveBeenCalledWith('terminal');
+});
+
+test('cat on a markdown file calls onFileOpen', () => {
+  const onFileOpen = jest.fn();
+  const { container } = render(<Terminal onFileOpen={onFileOpen} />);
+  typeAndEnter(container, 'cat about.md');
+  expect(onFileOpen).toHaveBeenCalledWith(
+    expect.stringContaining('about.md'),
+    expect.any(String)
+  );
+});
+
+test('resume command calls onResumeOpen', () => {
+  const onResumeOpen = jest.fn();
+  const { container } = render(<Terminal onResumeOpen={onResumeOpen} />);
+  typeAndEnter(container, 'resume');
+  expect(onResumeOpen).toHaveBeenCalled();
+});
+
+test('clear empties the output', () => {
+  const { container } = render(<Terminal />);
+  typeAndEnter(container, 'help');
+  expect(container.textContent).toMatch(/available commands/);
+  typeAndEnter(container, 'clear');
+  expect(container.textContent).not.toMatch(/available commands/);
 });
