@@ -18,6 +18,10 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
+    "generate-blogs": "node scripts/generate-blogs.js",
+    "prestart": "npm run generate-blogs",
+    "prebuild": "npm run generate-blogs",
+    "pretest": "npm run generate-blogs",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
