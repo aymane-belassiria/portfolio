@@ -47,6 +47,7 @@ const FileExplorer = ({ onFileOpen, rootPath = HOME_PATH }) => {
   const iconFor = (item) => {
     if (item.type === 'dir') return '📁';
     if (item.kind === 'pdf') return '📕';
+    if (item.kind === 'blog') return '📰';
     if (item.kind === 'project') return '🛠️';
     if (item.kind === 'experience') return '💼';
     if (item.kind === 'education') return '🎓';

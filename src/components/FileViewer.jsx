@@ -9,6 +9,7 @@ const KIND_LABEL = {
   about: 'about',
   contact: 'contact',
   skills: 'skills',
+  blog: 'blog',
 };
 
 const FileViewer = ({ filePath, content, kind }) => {
