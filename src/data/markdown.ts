@@ -140,3 +140,29 @@ export function educationIndex(): string {
     '',
   ].join('\n');
 }
+
+export interface BlogPost {
+  slug: string;
+  title: string;
+  date: string | null;
+  tags: string[];
+  content: string;
+}
+
+export function blogsIndex(posts: BlogPost[]): string {
+  if (posts.length === 0) {
+    return ['# Blog', '', 'No posts yet — check back soon.', ''].join('\n');
+  }
+  return [
+    '# Blog',
+    '',
+    `${posts.length} post(s). Open any \`<slug>.md\` to read, newest first.`,
+    '',
+    '| Post | Date | Tags |',
+    '|---|---|---|',
+    ...posts.map(
+      (p) => `| ${p.title} (\`${p.slug}.md\`) | ${p.date || '—'} | ${p.tags.join(', ')} |`
+    ),
+    '',
+  ].join('\n');
+}

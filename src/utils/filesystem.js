@@ -3,6 +3,7 @@
 // src/data/portfolio.ts so there's a single source of truth.
 
 import { experience, projects, education } from '../data/portfolio';
+import { blogs } from '../data/blogs.generated';
 import {
   aboutToMarkdown,
   contactToMarkdown,
@@ -13,6 +14,7 @@ import {
   projectsReadmeMarkdown,
   experienceIndex,
   educationIndex,
+  blogsIndex,
 } from '../data/markdown';
 
 export const HOME_PATH = '/home/aymane/portfolio';
@@ -46,6 +48,14 @@ function buildEducationDir() {
   return dir(children);
 }
 
+function buildBlogsDir() {
+  const children = { 'README.md': file(blogsIndex(blogs), 'blog') };
+  for (const post of blogs) {
+    children[`${post.slug}.md`] = file(post.content, 'blog');
+  }
+  return dir(children);
+}
+
 export function initializeFilesystem() {
   return {
     root: {
@@ -59,6 +69,7 @@ export function initializeFilesystem() {
             experience: buildExperienceDir(),
             projects: buildProjectsDir(),
             education: buildEducationDir(),
+            blogs: buildBlogsDir(),
           }),
         }),
       }),
