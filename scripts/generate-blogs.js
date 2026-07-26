@@ -9,23 +9,24 @@ const BLOGS_DIR = path.join(__dirname, '..', 'blogs');
 const OUTPUT_FILE = path.join(__dirname, '..', 'src', 'data', 'blogs.generated.js');
 
 function parseFrontmatter(text) {
-  const empty = { title: null, date: null, tags: [] };
+  const empty = () => ({ title: null, date: null, tags: [] });
+  text = text.replace(/\r\n?/g, '\n');
   const lines = text.split('\n');
-  if (lines[0].replace(/\r$/, '') !== '---') {
-    return { meta: empty, body: text };
+  if (lines[0] !== '---') {
+    return { meta: empty(), body: text };
   }
   let closing = -1;
   for (let i = 1; i < lines.length; i++) {
-    if (lines[i].replace(/\r$/, '') === '---') {
+    if (lines[i] === '---') {
       closing = i;
       break;
     }
   }
   if (closing === -1) {
     // Unclosed block: treat the whole file as body, no metadata.
-    return { meta: empty, body: text };
+    return { meta: empty(), body: text };
   }
-  const meta = { ...empty, tags: [] };
+  const meta = empty();
   for (const line of lines.slice(1, closing)) {
     const match = line.match(/^(title|date|tags):\s*(.*)$/);
     if (!match) continue;

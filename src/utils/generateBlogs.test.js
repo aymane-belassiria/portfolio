@@ -13,6 +13,15 @@ test('parseFrontmatter: extracts title, date, and inline tags array', () => {
   expect(body).toBe('# Hello\n\nBody text.\n');
 });
 
+test('parseFrontmatter: CRLF line endings parse identically to LF', () => {
+  const text = '---\r\ntitle: My first article\r\ndate: 2026-07-26\r\ntags: [go, backend]\r\n---\r\n\r\n# Hello\r\n\r\nBody text.\r\n';
+  const { meta, body } = parseFrontmatter(text);
+  expect(meta.title).toBe('My first article');
+  expect(meta.date).toBe('2026-07-26');
+  expect(meta.tags).toEqual(['go', 'backend']);
+  expect(body).toBe('# Hello\n\nBody text.\n');
+});
+
 test('parseFrontmatter: no frontmatter returns whole text as body', () => {
   const text = '# Just a post\n\nNo metadata here.\n';
   const { meta, body } = parseFrontmatter(text);
