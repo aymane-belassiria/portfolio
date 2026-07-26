@@ -27,6 +27,7 @@ const HELP_TEXT = `available commands:
   experience           list work experience
   projects             list curated projects
   projects --grid      open the project gallery (desktop mode)
+  blog                 list blog posts
   skills               technical skills
   contact              contact info
   whoami               who is at the prompt
@@ -221,6 +222,10 @@ const Terminal = ({
           }
           break;
         }
+        case 'blog':
+        case 'blogs':
+          handleLs(`${HOME_PATH}/blogs`);
+          break;
         case 'resume': {
           if (onResumeOpen) {
             printLine('[opening resume PDF…]');

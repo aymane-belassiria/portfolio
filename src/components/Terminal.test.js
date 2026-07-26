@@ -87,3 +87,27 @@ test('clear empties the output', () => {
   typeAndEnter(container, 'clear');
   expect(container.textContent).not.toMatch(/available commands/);
 });
+
+test('blog command lists blog posts', () => {
+  const { container } = render(<Terminal />);
+  typeAndEnter(container, 'blog');
+  expect(container.textContent).toMatch(/hello-world\.md/);
+});
+
+test('blogs alias also lists blog posts', () => {
+  const { container } = render(<Terminal />);
+  typeAndEnter(container, 'blogs');
+  expect(container.textContent).toMatch(/hello-world\.md/);
+});
+
+test('ls shows the blogs directory at portfolio root', () => {
+  const { container } = render(<Terminal />);
+  typeAndEnter(container, 'ls');
+  expect(container.textContent).toMatch(/blogs\//);
+});
+
+test('help mentions the blog command', () => {
+  const { container } = render(<Terminal />);
+  typeAndEnter(container, 'help');
+  expect(container.textContent).toMatch(/blog/);
+});

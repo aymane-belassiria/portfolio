@@ -124,3 +124,31 @@ test('project file content includes status and stack', () => {
   expect(content).toMatch(/tighalin/i);
   expect(content).toMatch(/Stack/);
 });
+
+test('blogs directory exists under home with README index', () => {
+  const fs = initializeFilesystem();
+  const node = getNode(fs, `${HOME_PATH}/blogs`);
+  expect(node).not.toBeNull();
+  expect(node.type).toBe('dir');
+  const names = listDirectory(fs, `${HOME_PATH}/blogs`).map((i) => i.name);
+  expect(names).toContain('README.md');
+});
+
+test('blogs directory contains the sample hello-world post with kind blog', () => {
+  const fs = initializeFilesystem();
+  const items = listDirectory(fs, `${HOME_PATH}/blogs`);
+  const entry = items.find((i) => i.name === 'hello-world.md');
+  expect(entry).toBeDefined();
+  expect(entry.kind).toBe('blog');
+  const content = getFileContent(fs, `${HOME_PATH}/blogs/hello-world.md`);
+  expect(content).toMatch(/Hello, world/);
+  expect(content).not.toMatch(/^---/); // frontmatter stripped
+});
+
+test('blogs README lists post title and date', () => {
+  const fs = initializeFilesystem();
+  const readme = getFileContent(fs, `${HOME_PATH}/blogs/README.md`);
+  expect(readme).toMatch(/# Blog/);
+  expect(readme).toMatch(/Hello, world/);
+  expect(readme).toMatch(/2026-07-26/);
+});

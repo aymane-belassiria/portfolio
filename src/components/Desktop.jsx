@@ -214,6 +214,12 @@ const Desktop = ({ onModeChange }) => {
       onOpen: () => openExplorer(`${HOME_PATH}/projects`),
     },
     {
+      id: 'icon-blogs',
+      label: 'Blogs',
+      emoji: '📰',
+      onOpen: () => openExplorer(`${HOME_PATH}/blogs`),
+    },
+    {
       id: 'icon-about',
       label: 'About',
       emoji: '📄',
